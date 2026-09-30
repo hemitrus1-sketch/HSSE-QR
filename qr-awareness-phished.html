@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber Awareness Simulation</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:Inter,Arial,sans-serif;background:#090909;color:#fff;overflow:hidden}
+button,input{font:inherit}
+.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+.screen.active{display:flex}
+.card{width:min(680px,90vw);text-align:center}
+.kicker{font-size:12px;letter-spacing:3px;text-transform:uppercase;opacity:.55;margin-bottom:20px}
+h1{font-size:clamp(36px,6vw,72px);line-height:.98;margin:0 0 22px;font-weight:800;letter-spacing:-2px}
+h2{font-size:clamp(28px,4vw,48px);margin:0 0 18px}
+p{font-size:18px;line-height:1.55;color:#bdbdbd;margin:0 auto 28px;max-width:560px}
+input{width:100%;max-width:460px;padding:18px 20px;border:1px solid #333;background:#111;color:#fff;border-radius:10px;outline:none;margin-bottom:18px}
+input:focus{border-color:#777}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:460px;margin:0 auto 20px}
+.opt{padding:16px;border:1px solid #333;background:#111;color:#ddd;border-radius:10px;cursor:pointer;transition:.2s}
+.opt:hover,.opt.selected{border-color:#fff;background:#1b1b1b;color:#fff}
+.cta{border:0;background:#fff;color:#000;padding:15px 28px;border-radius:999px;font-weight:700;cursor:pointer;letter-spacing:.3px}
+.cta:disabled{opacity:.3;cursor:not-allowed}
+#loading .card{max-width:520px}
+.loadline{margin:14px auto;color:#aaa;font-size:15px;opacity:0;transform:translateY(5px)}
+.loadline.show{animation:appear .45s forwards}
+@keyframes appear{to{opacity:1;transform:none}}
+#ready{background:radial-gradient(circle at center,#191919,#080808)}
+.ready-name{font-size:clamp(32px,5vw,60px);font-weight:800;margin-bottom:15px}
+.ready-choice{color:#999;font-size:18px;margin-bottom:30px}
+
+/* INTERRUPTION */
+#intrusion{background:#000;z-index:20;overflow:hidden}
+.matrix{position:absolute;inset:0;opacity:0;overflow:hidden;background:#000}
+.matrix.on{opacity:1}
+.col{position:absolute;top:-120%;font-family:monospace;font-size:13px;line-height:1.4;color:#76ff8a;opacity:.2;white-space:pre;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(240vh)}}
+.scanline{position:absolute;inset:0;background:linear-gradient(transparent 49%,rgba(255,255,255,.025) 50%,transparent 51%);background-size:100% 5px;pointer-events:none;opacity:.5}
+.system{position:relative;z-index:3;width:min(760px,88vw);text-align:left;font-family:monospace;color:#d7ffdc}
+.sysline{font-size:clamp(14px,2vw,21px);margin:10px 0;opacity:0}
+.sysline.show{animation:sysin .35s forwards}
+@keyframes sysin{to{opacity:1}}
+.warning{font-size:clamp(20px,3vw,34px);color:#fff;margin-top:25px;opacity:0}
+.warning.show{animation:sysin .5s forwards}
+
+/* MAP */
+#mapReveal{background:#050807;z-index:21}
+.mapstage{position:absolute;inset:0;overflow:hidden;background:
+radial-gradient(circle at 50% 50%,rgba(32,68,42,.45),transparent 35%),
+linear-gradient(135deg,#08120b,#020403 65%);
+}
+.world{position:absolute;width:150vw;height:150vw;max-width:1600px;max-height:1600px;left:50%;top:50%;transform:translate(-50%,-50%) scale(.42);transition:transform 3.2s cubic-bezier(.2,.75,.2,1)}
+.map-shape{position:absolute;inset:8%;opacity:.3}
+.land{position:absolute;border:1px solid rgba(140,255,160,.28);background:rgba(50,120,70,.08);filter:blur(.2px)}
+.land.a{width:31%;height:27%;left:8%;top:21%;border-radius:48% 35% 52% 42%;transform:rotate(-13deg)}
+.land.b{width:27%;height:32%;left:55%;top:16%;border-radius:55% 42% 45% 52%;transform:rotate(18deg)}
+.land.c{width:22%;height:25%;left:37%;top:55%;border-radius:40% 55% 38% 48%;transform:rotate(15deg)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(130,255,150,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(130,255,150,.06) 1px,transparent 1px);background-size:60px 60px}
+.label{position:absolute;color:#9df6aa;font-family:monospace;font-size:14px;letter-spacing:2px;opacity:.55}
+.india{left:53%;top:52%;opacity:0;transition:opacity 1s 1.2s}
+.bengaluru{left:54%;top:58%;opacity:0;transition:opacity 1s 2s}
+.pin{position:absolute;left:54.2%;top:59%;width:18px;height:18px;border:2px solid #fff;border-radius:50%;background:#6dff87;box-shadow:0 0 25px #6dff87;transform:scale(0);transition:transform .55s .3s}
+.venue{position:absolute;left:50%;top:63%;transform:translate(-50%,20px);opacity:0;text-align:center;font-family:monospace;transition:all .8s}
+.venue strong{display:block;font-size:clamp(18px,3vw,30px);letter-spacing:1px}
+.venue span{display:block;margin-top:8px;color:#8eaf94}
+#mapReveal.zoom .world{transform:translate(-50%,-50%) scale(1.9)}
+#mapReveal.zoom .india,#mapReveal.zoom .bengaluru{opacity:1}
+#mapReveal.zoom .pin{transform:scale(1)}
+#mapReveal.zoom .venue{opacity:1;transform:translate(-50%,0)}
+.mapMessage{position:absolute;z-index:4;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;opacity:0;pointer-events:none}
+.mapMessage h1{font-family:Arial,sans-serif;font-size:clamp(40px,8vw,100px);letter-spacing:-4px;max-width:1000px;text-shadow:0 0 35px rgba(100,255,130,.15)}
+.mapMessage p{color:#fff;font-size:clamp(20px,3vw,34px);margin-top:10px}
+.mapMessage.show{opacity:1;transition:opacity .7s}
+
+/* FINAL */
+#question,#reveal{z-index:30;background:#090909}
+.big{font-size:clamp(46px,8vw,100px);letter-spacing:-4px}
+.emphasis{color:#fff}
+.red{color:#ff5b5b}
+.small{font-size:16px;color:#888}
+.rules{display:flex;justify-content:center;gap:30px;margin:30px 0;font-weight:800;letter-spacing:2px}
+.rule span{display:block;font-size:12px;color:#777;margin-top:5px;font-weight:400;letter-spacing:0}
+@media(max-width:600px){.options{grid-template-columns:1fr}.rules{gap:14px;font-size:13px}.rule span{font-size:10px}}
+</style>
+</head>
+<body>
+
+<section id="intro" class="screen active">
+ <div class="card">
+  <div class="kicker">A quick personalised experience</div>
+  <h1>LET'S MAKE THIS<br>ABOUT YOU.</h1>
+  <p>A few quick questions and we'll create something just for you.</p>
+  <button class="cta" onclick="go('profile')">START</button>
+ </div>
+</section>
+
+<section id="profile" class="screen">
+ <div class="card">
+  <div class="kicker">Step 1 of 2</div>
+  <h2>Let's personalise this.</h2>
+  <input id="name" maxlength="30" placeholder="What should we call you?">
+  <p style="font-size:15px;margin-bottom:12px">What are you most looking forward to today?</p>
+  <div class="options">
+   <button class="opt" onclick="pick(this,'CONNECT')">CONNECT</button>
+   <button class="opt" onclick="pick(this,'CELEBRATE')">CELEBRATE</button>
+   <button class="opt" onclick="pick(this,'DISCOVER')">DISCOVER</button>
+   <button class="opt" onclick="pick(this,'UNWIND')">UNWIND</button>
+  </div>
+  <button id="continueBtn" class="cta" disabled onclick="build()">CONTINUE</button>
+ </div>
+</section>
+
+<section id="loading" class="screen">
+ <div class="card">
+  <div class="kicker">Preparing your experience</div>
+  <h2>One moment.</h2>
+  <div id="l1" class="loadline">✓ Profile created</div>
+  <div id="l2" class="loadline">✓ Preferences understood</div>
+  <div id="l3" class="loadline">✓ Experience prepared</div>
+ </div>
+</section>
+
+<section id="ready" class="screen">
+ <div class="card">
+  <div class="kicker">Personalised for you</div>
+  <div class="ready-name" id="readyName"></div>
+  <div class="ready-choice" id="readyChoice"></div>
+  <button class="cta" onclick="interrupt()">CONTINUE</button>
+ </div>
+</section>
+
+<section id="intrusion" class="screen">
+ <div id="matrix" class="matrix"></div>
+ <div class="scanline"></div>
+ <div class="system">
+  <div id="s1" class="sysline">Analysing session...</div>
+  <div id="s2" class="sysline">Resolving connection...</div>
+  <div id="s3" class="sysline">Identifying context...</div>
+  <div id="s4" class="sysline">Resolving location...</div>
+  <div id="warn" class="warning">UNEXPECTED CONTEXT DETECTED</div>
+ </div>
+</section>
+
+<section id="mapReveal" class="screen">
+ <div class="mapstage">
+  <div class="grid"></div>
+  <div class="world">
+   <div class="map-shape">
+    <div class="land a"></div><div class="land b"></div><div class="land c"></div>
+   </div>
+   <div class="label india">INDIA</div>
+   <div class="label bengaluru">BENGALURU</div>
+   <div class="pin"></div>
+   <div class="venue"><strong>FOUR SEASONS HOTEL</strong><span>BENGALURU, INDIA</span></div>
+  </div>
+ </div>
+ <div id="msg1" class="mapMessage"><div><h1>WE KNOW<br>WHERE YOU ARE.</h1></div></div>
+ <div id="msg2" class="mapMessage"><div><p>And you never told us.</p></div></div>
+</section>
+
+<section id="question" class="screen">
+ <div class="card">
+  <div class="kicker">Pause.</div>
+  <h2 id="qtext"></h2>
+  <p>You gave us your name.<br>You told us what you were looking forward to.<br>You scanned a QR code because <strong>Hemitrus</strong> asked you to.</p>
+  <p style="color:#fff;font-weight:700">Did you ever ask WHY?</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+   <button class="cta" onclick="reveal()">YES, I CHECKED</button>
+   <button class="cta" style="background:#222;color:#fff;border:1px solid #444" onclick="reveal()">NO, I JUST SCANNED</button>
+  </div>
+ </div>
+</section>
+
+<section id="reveal" class="screen">
+ <div class="card">
+  <div class="kicker">Cyber awareness simulation</div>
+  <h1 class="big">YOU JUST GOT<br><span class="red">PHISHED.</span></h1>
+  <p><strong>Don't worry. This was a simulation.</strong></p>
+  <p>We did not access your location or collect your personal information. We already knew the event was happening at Four Seasons Hotel, Bengaluru.</p>
+  <p>The point is simple: a QR code can take you somewhere unexpected and make a request feel legitimate.</p>
+  <div class="rules">
+   <div class="rule">STOP<span>Pause first</span></div>
+   <div class="rule">CHECK<span>Question the source</span></div>
+   <div class="rule">SCAN<span>Only when you trust it</span></div>
+  </div>
+  <p class="small">Next time, don't just ask “What will I get?” Ask “Why am I scanning this?”</p>
+ </div>
+</section>
+
+<script>
+var selected="";
+var userName="";
+
+function show(id){
+ document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+ document.getElementById(id).classList.add('active');
+}
+function go(id){show(id)}
+function pick(el,val){
+ document.querySelectorAll('.opt').forEach(function(x){x.classList.remove('selected')});
+ el.classList.add('selected'); selected=val;
+ document.getElementById('continueBtn').disabled=!document.getElementById('name').value.trim();
+}
+document.getElementById('name').addEventListener('input',function(){
+ document.getElementById('continueBtn').disabled=!(this.value.trim() && selected);
+});
+function build(){
+ userName=document.getElementById('name').value.trim();
+ show('loading');
+ setTimeout(function(){document.getElementById('l1').classList.add('show')},300);
+ setTimeout(function(){document.getElementById('l2').classList.add('show')},850);
+ setTimeout(function(){document.getElementById('l3').classList.add('show')},1400);
+ setTimeout(function(){
+  document.getElementById('readyName').textContent=userName;
+  document.getElementById('readyChoice').textContent="You're here to "+selected.toLowerCase()+".";
+  show('ready');
+ },2200);
+}
+function matrixStart(){
+ var m=document.getElementById('matrix');
+ m.innerHTML="";
+ var chars="01ABCDEFGHIJKLMNOPQRSTUVWXYZ<>[]{}\\/|";
+ for(var i=0;i<34;i++){
+  var c=document.createElement('div');
+  c.className='col';
+  c.style.left=(i*3.1+Math.random()*2)+"%";
+  c.style.animationDuration=(2.2+Math.random()*2.5)+"s";
+  c.style.animationDelay=(-Math.random()*2.5)+"s";
+  var str="";
+  for(var j=0;j<65;j++) str+=chars[Math.floor(Math.random()*chars.length)]+"\\n";
+  c.textContent=str;
+  m.appendChild(c);
+ }
+ m.classList.add('on');
+}
+function interrupt(){
+ show('intrusion');
+ matrixStart();
+ setTimeout(function(){document.getElementById('s1').classList.add('show')},700);
+ setTimeout(function(){document.getElementById('s2').classList.add('show')},2100);
+ setTimeout(function(){document.getElementById('s3').classList.add('show')},3500);
+ setTimeout(function(){document.getElementById('s4').classList.add('show')},5000);
+ setTimeout(function(){document.getElementById('warn').classList.add('show')},6500);
+ setTimeout(function(){show('mapReveal')},8200);
+ setTimeout(function(){document.getElementById('mapReveal').classList.add('zoom')},8500);
+ setTimeout(function(){document.getElementById('msg1').classList.add('show')},12200);
+ setTimeout(function(){
+   document.getElementById('msg1').classList.remove('show');
+   document.getElementById('msg2').classList.add('show');
+ },15800);
+ setTimeout(function(){
+   document.getElementById('msg2').classList.remove('show');
+   document.getElementById('qtext').textContent=userName+", did you ask WHY?";
+   show('question');
+ },18600);
+}
+function reveal(){show('reveal')}
+</script>
+</body>
+</html>
