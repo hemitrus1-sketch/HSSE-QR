@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<title>Quick Check</title>
+<style>
+  :root {
+    --bg:#0d0d0f;
+    --panel:#171719;
+    --text:#f5f5f2;
+    --muted:#a6a6a2;
+    --accent:#ffd100;
+    --red:#e31b23;
+    --green:#54d38a;
+    --border:rgba(255,255,255,.11);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  .app { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .screen { width:min(680px,100%); display:none; animation:fade .45s ease; }
+  .screen.active { display:block; }
+  @keyframes fade { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+  .brand { font-size:12px; letter-spacing:.22em; color:var(--muted); text-transform:uppercase; margin-bottom:28px; }
+  h1 { font-size:clamp(34px,8vw,64px); line-height:1.02; margin:0 0 18px; letter-spacing:-.045em; }
+  h2 { font-size:clamp(28px,6vw,46px); line-height:1.08; margin:0 0 18px; letter-spacing:-.035em; }
+  p { color:var(--muted); font-size:17px; line-height:1.6; margin:0 0 28px; }
+  .card { background:linear-gradient(145deg,#1b1b1e,#121214); border:1px solid var(--border); border-radius:24px; padding:30px; box-shadow:0 24px 80px rgba(0,0,0,.35); }
+  .button {
+    width:100%; border:0; border-radius:14px; padding:16px 20px; font-size:15px; font-weight:800;
+    letter-spacing:.04em; cursor:pointer; background:var(--accent); color:#111; transition:.2s;
+  }
+  .button:hover { transform:translateY(-2px); filter:brightness(1.04); }
+  .button.secondary { background:#242426; color:var(--text); border:1px solid var(--border); }
+  .button + .button { margin-top:12px; }
+  label { display:block; font-size:13px; color:#d5d5d1; margin:20px 0 8px; }
+  input {
+    width:100%; padding:15px 16px; border-radius:12px; border:1px solid var(--border);
+    background:#0e0e10; color:var(--text); outline:none; font-size:16px;
+  }
+  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,209,0,.10); }
+  .progress { height:8px; background:#29292c; border-radius:999px; overflow:hidden; margin:28px 0 16px; }
+  .bar { height:100%; width:0; background:var(--accent); border-radius:999px; transition:width .15s linear; }
+  .status { font-size:13px; color:var(--muted); min-height:20px; }
+  .check { color:var(--green); font-size:46px; margin-bottom:18px; }
+  .danger { color:var(--red); }
+  .reveal { border-color:rgba(227,27,35,.38); }
+  .big-question { border-left:4px solid var(--accent); padding-left:20px; margin:28px 0; }
+  .name { color:var(--accent); }
+  .steps { display:grid; gap:12px; margin:25px 0 30px; }
+  .step { border:1px solid var(--border); border-radius:16px; padding:18px; background:#151517; }
+  .step strong { display:block; margin-bottom:5px; font-size:15px; }
+  .step span { color:var(--muted); font-size:14px; line-height:1.5; }
+  .footer { margin-top:24px; font-size:11px; color:#666; text-align:center; letter-spacing:.08em; text-transform:uppercase; }
+  .pulse { animation:pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity:.55 } }
+  @media(max-width:480px) {
+    .app { padding:16px; }
+    .card { padding:24px 20px; border-radius:20px; }
+    p { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section id="s1" class="screen active">
+    <div class="brand">Quick Access</div>
+    <div class="card">
+      <h1>You're almost there.</h1>
+      <p>Complete a few quick details to continue.</p>
+      <button class="button" onclick="show('s2')">CONTINUE →</button>
+    </div>
+  </section>
+
+  <section id="s2" class="screen">
+    <div class="brand">Quick Details</div>
+    <div class="card">
+      <h2>Tell us a little about yourself</h2>
+      <p>It takes less than 30 seconds.</p>
+      <label for="name">Your name</label>
+      <input id="name" autocomplete="off" placeholder="Enter your name">
+      <label for="food">Your favourite food</label>
+      <input id="food" autocomplete="off" placeholder="e.g. Pizza">
+      <label for="colour">Your favourite colour</label>
+      <input id="colour" autocomplete="off" placeholder="e.g. Blue">
+      <br><br>
+      <button class="button" onclick="submitDetails()">SUBMIT →</button>
+      <div class="footer">Simulation — nothing is transmitted</div>
+    </div>
+  </section>
+
+  <section id="s3" class="screen">
+    <div class="brand">Processing</div>
+    <div class="card">
+      <h2>Processing your information…</h2>
+      <div class="progress"><div id="bar" class="bar"></div></div>
+      <div id="status" class="status">Validating information...</div>
+      <div class="footer">Please wait</div>
+    </div>
+  </section>
+
+  <section id="s4" class="screen">
+    <div class="brand">One last question</div>
+    <div class="card">
+      <h2><span id="displayName" class="name">You</span>, did you ask <em>WHY</em> you needed to scan this QR code?</h2>
+      <div class="big-question">
+        <p style="margin:0">Before giving us information, did you stop to question where this QR code came from and why we needed these details?</p>
+      </div>
+      <button class="button" onclick="show('s5')">YES, I CHECKED</button>
+      <button class="button secondary" onclick="show('s5')">NO, I JUST SCANNED</button>
+    </div>
+  </section>
+
+  <section id="s5" class="screen">
+    <div class="card reveal">
+      <div class="brand">The Reveal</div>
+      <div class="danger pulse" style="font-weight:900;letter-spacing:.12em;font-size:13px;margin-bottom:14px;">SIMULATION ALERT</div>
+      <h1 class="danger">YOU JUST GOT SCAMMED</h1>
+      <p><strong>Don't worry. This was a simulation.</strong></p>
+      <p>You scanned a QR code without first questioning why you needed to scan it. You then entered information because the page looked legitimate.</p>
+      <p><strong id="personalLine">That is exactly the behaviour attackers can exploit.</strong></p>
+      <button class="button" onclick="show('s6')">SHOW ME THE LESSON →</button>
+    </div>
+  </section>
+
+  <section id="s6" class="screen">
+    <div class="card">
+      <div class="brand">The Lesson</div>
+      <h2>Before you scan.</h2>
+      <div class="steps">
+        <div class="step">
+          <strong>STOP</strong>
+          <span>Don't scan automatically just because a QR code is placed in front of you.</span>
+        </div>
+        <div class="step">
+          <strong>CHECK</strong>
+          <span>Ask who created it, why you are being asked to scan it, where it leads, and what information it requests.</span>
+        </div>
+        <div class="step">
+          <strong>SCAN</strong>
+          <span>Proceed only when you understand and trust the source and destination.</span>
+        </div>
+      </div>
+      <h2 style="font-size:clamp(28px,6vw,42px);text-align:center;">STOP → CHECK → SCAN</h2>
+      <p style="text-align:center;margin-top:25px;"><strong>Next time you see a QR code…<br>ASK WHY.</strong></p>
+      <div class="footer">Cyber Awareness • 2026</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/*
+  QR AWARENESS SIMULATION
+  - No data is transmitted or stored outside this browser session.
+  - Change screen text directly in the HTML.
+  - Change colours in :root above.
+  - Change processing duration in submitDetails().
+  - This is intentionally a simulation and does not collect personal data.
+*/
+
+let userName = "";
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function submitDetails() {
+  const name = document.getElementById('name').value.trim();
+  if (!name) {
+    document.getElementById('name').focus();
+    document.getElementById('name').style.borderColor = '#e31b23';
+    return;
+  }
+
+  // Kept only in browser memory for this simulation.
+  userName = name;
+  document.getElementById('displayName').textContent = name;
+  document.getElementById('personalLine').textContent =
+    name + ", that's exactly the behaviour attackers can exploit.";
+
+  show('s3');
+
+  const bar = document.getElementById('bar');
+  const status = document.getElementById('status');
+  const messages = [
+    "Validating information...",
+    "Preparing your results...",
+    "Finalising submission...",
+    "Almost done..."
+  ];
+
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 2;
+    bar.style.width = progress + "%";
+    if (progress === 25) status.textContent = messages[1];
+    if (progress === 50) status.textContent = messages[2];
+    if (progress === 75) status.textContent = messages[3];
+
+    if (progress >= 100) {
+      clearInterval(interval);
+      status.innerHTML = '<span style="color:#54d38a;font-weight:700;">✓ Submission complete</span>';
+      setTimeout(() => show('s4'), 900);
+    }
+  }, 60);
+}
+</script>
+</body>
+</html>
